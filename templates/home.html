@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Home | Brain Stroke AI</title>
+    <style>
+      :root {
+        --accent: #2F7A73;
+        --accent-dark: #24605A;
+        --accent-light: #E7F2F1;
+        --bg: #FAFAFA;
+        --surface: #FFFFFF;
+        --border: #E3E5E8;
+        --text-primary: #1F2937;
+        --text-secondary: #6B7280;
+        --danger: #B3453D;
+        --radius: 10px;
+        --shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.03);
+        --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.06);
+      }
+
+      * { box-sizing: border-box; }
+
+      html, body {
+        margin: 0;
+        padding: 0;
+        background: var(--bg);
+        color: var(--text-primary);
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      h1, h2, h3, h4 {
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        margin: 0 0 12px 0;
+      }
+
+      p { line-height: 1.6; color: var(--text-secondary); }
+
+      a { color: var(--accent); text-decoration: none; }
+      a:hover { color: var(--accent-dark); }
+
+      .navbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 40px;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        position: sticky;
+        top: 0;
+        z-index: 50;
+      }
+
+      .navbar .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 600;
+        font-size: 16px;
+        color: var(--text-primary);
+      }
+
+      .navbar .brand .dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: var(--accent);
+      }
+
+      .navbar nav {
+        display: flex;
+        align-items: center;
+        gap: 28px;
+      }
+
+      .navbar nav a {
+        color: var(--text-secondary);
+        font-size: 14px;
+        font-weight: 500;
+        padding: 6px 2px;
+        border-bottom: 2px solid transparent;
+      }
+
+      .navbar nav a.active,
+      .navbar nav a:hover {
+        color: var(--text-primary);
+        border-bottom-color: var(--accent);
+      }
+
+      .navbar .user-pill {
+        font-size: 13px;
+        color: var(--text-secondary);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 11px 22px;
+        border-radius: 8px;
+        border: none;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.15s ease, transform 0.05s ease;
+      }
+
+      .btn-primary {
+        background: var(--accent);
+        color: #fff;
+      }
+      .btn-primary:hover { background: var(--accent-dark); }
+
+      .page-container {
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 48px 40px 80px;
+      }
+
+      .hero {
+        padding: 40px 0 48px;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 48px;
+      }
+
+      .hero .eyebrow {
+        display: inline-block;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--accent);
+        background: var(--accent-light);
+        padding: 5px 12px;
+        border-radius: 20px;
+        margin-bottom: 18px;
+        letter-spacing: 0.02em;
+      }
+
+      .hero h1 {
+        font-size: 34px;
+        max-width: 720px;
+        line-height: 1.25;
+      }
+
+      .hero p.lead {
+        font-size: 16px;
+        max-width: 640px;
+        margin-top: 12px;
+      }
+
+      .hero .cta-row {
+        margin-top: 28px;
+        display: flex;
+        gap: 12px;
+      }
+
+      .section {
+        margin-bottom: 48px;
+      }
+
+      .section h2 {
+        font-size: 20px;
+        margin-bottom: 14px;
+      }
+
+      .stat-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        margin-top: 20px;
+      }
+
+      .stat-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 22px;
+        box-shadow: var(--shadow);
+      }
+
+      .stat-card .stat-number {
+        font-size: 26px;
+        font-weight: 700;
+        color: var(--accent-dark);
+        margin-bottom: 4px;
+      }
+
+      .stat-card .stat-label {
+        font-size: 13px;
+        color: var(--text-secondary);
+      }
+
+      .feature-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        margin-top: 20px;
+      }
+
+      .feature-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 24px;
+        box-shadow: var(--shadow);
+      }
+
+      .feature-card .icon-badge {
+        width: 34px;
+        height: 34px;
+        border-radius: 8px;
+        background: var(--accent-light);
+        color: var(--accent-dark);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        margin-bottom: 14px;
+        font-size: 14px;
+      }
+
+      .feature-card h3 {
+        font-size: 15px;
+        margin-bottom: 8px;
+      }
+
+      .feature-card p {
+        font-size: 13.5px;
+        margin: 0;
+      }
+
+      .disclaimer-box {
+        background: #F7F5EE;
+        border: 1px solid #E9E2CE;
+        border-radius: var(--radius);
+        padding: 18px 22px;
+        font-size: 13px;
+        color: #6B5F3F;
+      }
+
+      @media (max-width: 720px) {
+        .stat-grid, .feature-grid { grid-template-columns: 1fr; }
+        .page-container { padding: 32px 20px 60px; }
+        .navbar { padding: 14px 20px; }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="navbar">
+      <div class="brand"><span class="dot"></span><span>Brain Stroke AI</span></div>
+      <nav>
+        <a class="active" href="/home">Home</a>
+        <a href="/analyze">Analysis</a>
+        <a href="/logout">Logout</a>
+      </nav>
+      <div class="user-pill"><span>Signed in</span></div>
+    </header>
+
+    <main class="page-container">
+      <section class="hero">
+        <span class="eyebrow">AI-assisted stroke triage</span>
+        <h1>Support your workflow with explainable imaging analysis.</h1>
+        <p class="lead">Brain strokes are a medical emergency. Fast recognition and prompt care can reduce long-term disability, and this system helps surface likely patterns for clinician review.</p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="/analyze">Start analysis</a>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Snapshot</h2>
+        <div class="stat-grid">
+          <div class="stat-card">
+            <div class="stat-number">3</div>
+            <div class="stat-label">Core workflow stages</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number">2</div>
+            <div class="stat-label">Primary stroke classes</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number">1</div>
+            <div class="stat-label">Explainable review panel</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>What the app does</h2>
+        <div class="feature-grid">
+          <article class="feature-card">
+            <div class="icon-badge">01</div>
+            <h3>Upload a scan</h3>
+            <p>Drop in a CT or MRI image and launch model inference in a single step.</p>
+          </article>
+          <article class="feature-card">
+            <div class="icon-badge">02</div>
+            <h3>Review predictions</h3>
+            <p>Inspect predicted stroke type, confidence, and probability breakdowns.</p>
+          </article>
+          <article class="feature-card">
+            <div class="icon-badge">03</div>
+            <h3>Inspect explainability</h3>
+            <p>Review visual overlays and download a structured report for downstream review.</p>
+          </article>
+        </div>
+      </section>
+
+      <div class="disclaimer-box">
+        This prototype is intended for research and review support. It is not a clinically validated diagnostic system and should be interpreted with expert oversight.
+      </div>
+    </main>
+  </body>
+</html>

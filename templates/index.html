@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Brain Stroke AI</title>
+    <style>
+      :root {
+        --bg: #07111f;
+        --panel: #102033;
+        --panel-2: #17324d;
+        --text: #eef6ff;
+        --muted: #8fb6d9;
+        --accent: #3eb0ff;
+        --accent-2: #775dff;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: Arial, Helvetica, sans-serif;
+        background: linear-gradient(135deg, var(--bg), #0f2340);
+        color: var(--text);
+      }
+      .container { max-width: 1100px; margin: 0 auto; padding: 24px; }
+      .hero, .card { background: rgba(16, 32, 51, 0.95); border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; box-shadow: 0 12px 40px rgba(0,0,0,0.25); }
+      .hero { padding: 28px; margin-bottom: 20px; }
+      .hero h1 { margin: 0 0 8px; font-size: 2rem; }
+      .hero p { color: var(--muted); line-height: 1.6; }
+      .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+      .card { padding: 20px; }
+      .upload-zone { border: 2px dashed var(--accent); border-radius: 14px; padding: 24px; text-align: center; background: rgba(62, 176, 255, 0.08); cursor: pointer; }
+      .upload-zone input { display: none; }
+      .preview img { width: 100%; max-height: 420px; object-fit: contain; border-radius: 12px; margin-top: 12px; }
+      .result { margin-top: 12px; }
+      .metric { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.08); }
+      .pill { display: inline-block; padding: 6px 10px; border-radius: 999px; background: linear-gradient(90deg, var(--accent), var(--accent-2)); font-size: 0.9rem; font-weight: 700; }
+      button { border: none; border-radius: 10px; padding: 10px 14px; background: linear-gradient(90deg, var(--accent), var(--accent-2)); color: white; font-weight: 700; cursor: pointer; }
+      .muted { color: var(--muted); }
+      @media (max-width: 840px) { .grid { grid-template-columns: 1fr; } }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <section class="hero">
+        <h1>Brain Stroke AI</h1>
+        <p>FastAPI-powered diagnostic UI for brain scan upload, prediction, and explainable AI output.</p>
+      </section>
+      <div class="grid">
+        <section class="card">
+          <h2>Upload Scan</h2>
+          <label class="upload-zone" for="fileInput">
+            <input id="fileInput" type="file" accept="image/*" />
+            <div class="pill">Choose Image</div>
+            <p class="muted">PNG, JPG, JPEG, BMP, TIFF, and TIF files are supported.</p>
+          </label>
+          <div id="preview" class="preview"></div>
+        </section>
+        <section class="card">
+          <h2>Prediction</h2>
+          <div id="status" class="muted">Upload an image to begin.</div>
+          <div id="result" class="result"></div>
+          <div id="reportSection" style="margin-top: 12px;"></div>
+        </section>
+      </div>
+    </div>
+    <script>
+      const fileInput = document.getElementById('fileInput');
+      const preview = document.getElementById('preview');
+      const resultBox = document.getElementById('result');
+      const statusBox = document.getElementById('status');
+      const reportSection = document.getElementById('reportSection');
+
+      fileInput.addEventListener('change', async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        preview.innerHTML = '<p class="muted">Processing image…</p>';
+        statusBox.textContent = 'Analyzing scan…';
+        resultBox.innerHTML = '';
+        reportSection.innerHTML = '';
+
+        const response = await fetch('/analyze', { method: 'POST', body: formData });
+        const data = await response.json();
+
+        if (data.image_url) {
+          preview.innerHTML = `<img src="${data.image_url}" alt="uploaded scan" />`;
+        }
+
+        if (data.error) {
+          statusBox.textContent = data.error;
+          return;
+        }
+
+        statusBox.innerHTML = `<span class="pill">${data.status}</span>`;
+        const metrics = [];
+        metrics.push(`<div class="metric"><span>Prediction</span><strong>${data.prediction}</strong></div>`);
+        metrics.push(`<div class="metric"><span>Confidence</span><strong>${(data.confidence * 100).toFixed(2)}%</strong></div>`);
+        if (data.probabilities && data.probabilities.length) {
+          data.probabilities.forEach((entry) => {
+            metrics.push(`<div class="metric"><span>${entry.class}</span><strong>${(entry.probability * 100).toFixed(2)}%</strong></div>`);
+          });
+        }
+        resultBox.innerHTML = metrics.join('');
+
+        if (data.report_url) {
+          reportSection.innerHTML = `<a href="${data.report_url}" target="_blank"><button>Download Report</button></a>`;
+        }
+      });
+    </script>
+  </body>
+</html>

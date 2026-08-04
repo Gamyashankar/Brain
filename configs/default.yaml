@@ -1,0 +1,39 @@
+seed: 42
+
+dataset:
+  root: data/stroke_binary
+  image_size: 224
+  num_workers: 2
+  classes:
+    - normal
+    - stroke
+
+training:
+  epochs: 2
+  batch_size: 8
+  learning_rate: 0.0001
+  weight_decay: 0.01
+  mixed_precision: true
+  freeze_backbone_epochs: 0
+
+model:
+  name: swin_tiny_patch4_window7_224
+  pretrained: true
+
+sam:
+  enabled: true
+  model_type: vit_b
+  checkpoint: checkpoints/sam_vit_b_01ec64.pth
+  min_mask_area_ratio: 0.01
+  max_mask_area_ratio: 0.65
+  crop_padding: 16
+
+outputs:
+  root: outputs
+  checkpoints: outputs/checkpoints
+  reports: outputs/reports
+  explanations: outputs/explanations
+
+xai:
+  occlusion_patch_size: 24
+  occlusion_stride: 12
