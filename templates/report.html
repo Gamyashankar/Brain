@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}AI Report | Brain Stroke AI{% endblock %}
+
+{% block content %}
+{% set prediction = scan.prediction|lower %}
+{% set badge_class = 'badge-hemorrhagic' if prediction == 'hemorrhagic' else ('badge-ischemic' if prediction == 'ischemic' else ('badge-normal' if prediction == 'normal' else 'badge-unknown')) %}
+{% set display_prediction = {'hemorrhagic': 'Hemorrhagic Stroke', 'ischemic': 'Ischemic Stroke', 'normal': 'Normal', 'unknown': 'Unknown'}[prediction] %}
+
+<div class="page-head">
+  <div>
+    <h1>AI Analysis Report</h1>
+    <p>Report #{{ scan.id }} &bull; {{ scan.created_at[:10] }}</p>
+  </div>
+  <div style="display: flex; gap: 10px;">
+    <a class="btn btn-primary" href="{{ url_for('download_scan_report', scan_id=scan.id) }}">Download PDF</a>
+    {% if role == 'doctor' %}<a class="btn" href="{{ url_for('patient_detail', patient_id=patient.id) }}">Back to patient</a>{% else %}<a class="btn" href="{{ url_for('patient_dashboard') }}">Back</a>{% endif %}
+  </div>
+</div>
+
+<div class="two-col">
+  <div>
+    <div class="card" style="margin-bottom: 20px;">
+      <h3>Patient Details</h3>
+      <table>
+        <tr><th>Patient Name</th><td>{{ patient.name }}</td></tr>
+        <tr><th>Patient ID</th><td>{{ patient.id }}</td></tr>
+        <tr><th>Age</th><td>{{ patient.age or '-' }}</td></tr>
+        <tr><th>Gender</th><td>{{ patient.gender or '-' }}</td></tr>
+        <tr><th>Scan Date</th><td>{{ scan.created_at[:10] }}</td></tr>
+      </table>
+    </div>
+
+    <div class="card" style="margin-bottom: 20px;">
+      <h3>Prediction</h3>
+      <p style="font-size: 20px; margin: 8px 0;">
+        <span class="badge {{ badge_class }}" style="font-size: 15px; padding: 6px 14px;">{{ display_prediction }}</span>
+      </p>
+      <table>
+        <tr><th>Confidence</th><td>{{ scan.confidence }}%</td></tr>
+        {% if scan.severity %}<tr><th>Severity</th><td>{{ scan.severity }}</td></tr>{% endif %}
+        {% if scan.stroke_score is not none %}<tr><th>Stroke Score</th><td>{{ scan.stroke_score }}</td></tr>{% endif %}
+        {% if scan.affected_region %}<tr><th>Affected Region</th><td>{{ scan.affected_region }}</td></tr>{% endif %}
+      </table>
+      {% if prediction == 'normal' %}
+      <p class="muted" style="margin-top: 10px;">No stroke detected. The scan was reviewed by the AI model and no stroke signature was found.</p>
+      {% else %}
+      <p class="muted" style="margin-top: 10px;">Stroke detected. Review the highlighted region in the Explainable AI panel below.</p>
+      {% endif %}
+    </div>
+
+    {% if prediction != 'normal' %}
+    <div class="card" style="margin-bottom: 20px;">
+      <h3>Clinical Summary</h3>
+      <table>
+        <tr><th>Stroke</th><td>{{ 'Detected' if prediction != 'unknown' else 'Unknown' }}</td></tr>
+        <tr><th>Type</th><td>{{ display_prediction }}</td></tr>
+        {% if scan.affected_region %}<tr><th>Affected Region</th><td>{{ scan.affected_region }}</td></tr>{% endif %}
+        {% if scan.lesion_area %}<tr><th>Lesion Area</th><td>{{ scan.lesion_area }} mm&sup2;</td></tr>{% endif %}
+        <tr><th>Confidence</th><td>{{ scan.confidence }}%</td></tr>
+        {% if scan.severity %}<tr><th>Severity</th><td>{{ scan.severity }}</td></tr>{% endif %}
+      </table>
+    </div>
+    {% endif %}
+  </div>
+
+  <div>
+    {% if prediction != 'normal' and scan.lesion_overlay %}
+    <div class="card" style="margin-bottom: 20px;">
+      <h3>Lesion Localization</h3>
+      <img src="{{ url_for('static', filename=scan.lesion_overlay|basename) }}" alt="Lesion localization with red contour" style="width: 100%; border-radius: 8px; border: 1px solid var(--border);" />
+      <table style="margin-top: 12px;">
+        <tr><th>Region</th><td>{{ scan.affected_region or '-' }}</td></tr>
+        {% if scan.lesion_area %}<tr><th>Lesion Area</th><td>{{ scan.lesion_area }} mm&sup2;</td></tr>{% endif %}
+        {% if scan.lesion_pct %}<tr><th>Brain Affected</th><td>{{ scan.lesion_pct }}%</td></tr>{% endif %}
+        {% if scan.lesion_centroid %}<tr><th>Centroid (X, Y)</th><td>{{ scan.lesion_centroid }}</td></tr>{% endif %}
+      </table>
+      <p class="muted" style="margin-top: 8px; font-size: 12px;">Red contour shows the lesion region localized from the XAI consensus mask. Area and region are approximate (assuming ~0.5 mm/pixel).</p>
+    </div>
+    {% endif %}
+
+    {% if scan.explanation_path %}
+    <div class="card" style="margin-bottom: 20px;">
+      <h3>Explainable AI &mdash; Multi-Method</h3>
+      <img src="{{ url_for('static', filename=scan.explanation_path|basename) }}" alt="XAI heatmap" style="width: 100%; border-radius: 8px; border: 1px solid var(--border);" />
+      {% if prediction == 'normal' %}
+      <p class="muted" style="margin-top: 8px;">The highlighted (blue) region shows where the model looked. No stroke signature was found in the scan.</p>
+      {% else %}
+      <p class="muted" style="margin-top: 8px;">The highlighted (red) region is the consensus of LIME, Grad-CAM, and SHAP and drove the model's stroke prediction.</p>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {% if role == 'doctor' %}
+    <div class="card" style="margin-bottom: 20px;">
+      <h3>Doctor Notes</h3>
+      <form method="POST">
+        <div class="field">
+          <textarea name="doctor_notes" rows="5" placeholder="Add your clinical observations here...">{{ scan.doctor_notes or '' }}</textarea>
+        </div>
+        <button class="btn btn-primary" type="submit">Save Report</button>
+      </form>
+    </div>
+    {% elif scan.doctor_notes %}
+    <div class="card" style="margin-bottom: 20px;">
+      <h3>Doctor Notes</h3>
+      <p style="color: var(--text-primary);">{{ scan.doctor_notes }}</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

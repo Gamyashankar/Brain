@@ -13,45 +13,69 @@ from fastapi.staticfiles import StaticFiles
 from PIL import Image
 
 
-def build_prediction_summary(prediction: str, confidence: float, image: Image.Image | None = None) -> dict[str, Any]:
+def build_prediction_summary(
+    prediction: str,
+    confidence: float,
+    image: Image.Image | None = None,
+    probabilities: list[dict[str, Any]] | Any | None = None,
+) -> dict[str, Any]:
     prediction = str(prediction or "").strip().lower()
     confidence_score = round(float(confidence) * 100, 2)
 
+    prob_by_class: dict[str, float] = {}
+    if probabilities is not None:
+        rows = probabilities.to_dict("records") if hasattr(probabilities, "to_dict") else (probabilities if isinstance(probabilities, list) else [])
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            name = str(row.get("class", "")).strip().lower()
+            try:
+                value = float(row.get("probability", 0.0))
+            except (TypeError, ValueError):
+                continue
+            if value > 1.0:
+                value = value / 100.0
+            prob_by_class[name] = value
+
     if prediction in {"hemorrhagic", "hemorrhage", "bleed"}:
         stroke_type = "Hemorrhagic Stroke"
-        severity = "High"
     elif prediction in {"ischemic", "ischemia", "ischaemic"}:
         stroke_type = "Ischemic Stroke"
-        severity = "High" if confidence_score >= 80 else "Moderate"
     elif prediction in {"normal", "none", "no stroke", "no_stroke"}:
         stroke_type = "No Stroke Detected"
-        severity = "None"
     elif prediction == "stroke":
         if image is None:
             stroke_type = "Stroke Detected"
-            severity = "High"
         else:
             grayscale = image.convert("L")
             mean_intensity = ImageStat.Stat(grayscale).mean[0]
             stroke_type = "Hemorrhagic Stroke" if mean_intensity > 140 else "Ischemic Stroke"
-            severity = "High" if confidence_score >= 80 else "Moderate"
     else:
         stroke_type = prediction.replace("_", " ").title() if prediction else "Stroke Detected"
-        severity = "High" if confidence_score >= 80 else "Moderate"
+
+    stroke_probs = [value for name, value in prob_by_class.items() if name in {"ischemic", "ischemia", "ischaemic", "hemorrhagic", "hemorrhage", "bleed", "stroke"}]
+    if stroke_probs:
+        stroke_score = round(min(100.0, sum(stroke_probs) * 100.0), 2)
+    elif stroke_type == "No Stroke Detected":
+        stroke_score = round(max(0.0, 100.0 - confidence_score), 2)
+    else:
+        stroke_score = confidence_score
 
     if stroke_type == "No Stroke Detected":
-        probabilities = [{"class": "No Stroke", "probability": round(max(0.0, 100.0 - confidence_score), 2)}]
+        severity = "None"
+    elif stroke_score >= 80:
+        severity = "Severe"
+    elif stroke_score >= 50:
+        severity = "Moderate"
     else:
-        probabilities = [{"class": "Stroke", "probability": confidence_score}]
-
-    stroke_score = round(min(100.0, max(0.0, confidence_score * 0.92 + (10 if stroke_type != "No Stroke Detected" else 0))), 2)
+        severity = "Mild"
 
     return {
         "stroke_type": stroke_type,
         "confidence_score": confidence_score,
         "severity": severity,
         "stroke_score": stroke_score,
-        "probabilities": probabilities,
+        "probabilities": [],
     }
 
 from flask_app import app as flask_app_instance
@@ -123,7 +147,14 @@ async def analyze(file: UploadFile = File(...)) -> JSONResponse:
         }
     else:
         prediction = str(result.get("prediction", "")).strip().lower()
-        summary = build_prediction_summary(prediction, result.get("confidence", 0.0), image)
+        probabilities = result.get("probabilities")
+        prob_rows = []
+        if hasattr(probabilities, "to_dict"):
+            prob_rows = probabilities.to_dict("records")
+        elif isinstance(probabilities, list):
+            prob_rows = probabilities
+        summary = build_prediction_summary(prediction, result.get("confidence", 0.0), image, prob_rows)
+        lesion = result.get("lesion") or {}
         payload = {
             "status": "Prediction ready",
             "stroke_type": summary["stroke_type"],
@@ -131,6 +162,7 @@ async def analyze(file: UploadFile = File(...)) -> JSONResponse:
             "severity": summary["severity"],
             "stroke_score": summary["stroke_score"],
             "probabilities": summary["probabilities"],
+            "lesion": lesion,
         }
 
     buffered = io.BytesIO()
@@ -140,10 +172,29 @@ async def analyze(file: UploadFile = File(...)) -> JSONResponse:
 
     report_dir = ensure_dir(config["outputs"]["reports"])
     report_path = Path(report_dir) / "latest_clinical_report.pdf"
+    report_result = dict(result)
+    if result["status"] != "model_missing":
+        report_result.update(
+            {
+                "stroke_type": payload["stroke_type"],
+                "severity": payload["severity"],
+            }
+        )
+    report_result["explanation_path"] = result.get("explanation_path")
+    lesion = result.get("lesion") or {}
+    report_result.update(
+        {
+            "affected_region": lesion.get("region"),
+            "lesion_area": lesion.get("area_mm2"),
+            "lesion_pct": lesion.get("pct_brain"),
+            "lesion_centroid": lesion.get("centroid"),
+            "lesion_overlay": lesion.get("overlay_path"),
+        }
+    )
     build_clinical_report(
         output_path=report_path,
         image_name=file.filename,
-        result=result,
+        result=report_result,
         explanation_path=result.get("explanation_path"),
     )
     payload["report_url"] = f"/reports/{report_path.name}"

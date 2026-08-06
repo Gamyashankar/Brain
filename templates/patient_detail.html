@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Patient Details | Brain Stroke AI{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Patient Details</h1>
+    <p>Full patient record and scan history.</p>
+  </div>
+  <div style="display: flex; gap: 10px;">
+    <a class="btn btn-primary" href="{{ url_for('patient_upload', patient_id=patient.id) }}">Upload Scan</a>
+    <a class="btn" href="{{ url_for('patient_edit', patient_id=patient.id) }}">Edit</a>
+    <a class="btn" href="{{ url_for('doctor_patients') }}">Back to patients</a>
+  </div>
+</div>
+
+<div class="two-col">
+  <div>
+    <div class="card" style="margin-bottom: 20px;">
+      <h3>Patient Record</h3>
+      <table>
+        <tr><th>Patient Name</th><td>{{ patient.name }}</td></tr>
+        <tr><th>Patient ID</th><td>{{ patient.id }}</td></tr>
+        <tr><th>Age</th><td>{{ patient.age or '-' }}</td></tr>
+        <tr><th>Gender</th><td>{{ patient.gender or '-' }}</td></tr>
+        <tr><th>Phone</th><td>{{ patient.phone or '-' }}</td></tr>
+        <tr><th>Blood Group</th><td>{{ patient.blood_group or '-' }}</td></tr>
+        <tr><th>Username</th><td>{{ patient.username or '-' }}</td></tr>
+        <tr><th>Registered</th><td>{{ (patient.created_at or '')[:10] }}</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>Medical History</h3>
+      {% if patient.medical_history %}
+      <p style="color: var(--text-primary);">{{ patient.medical_history }}</p>
+      {% else %}
+      <p class="muted">No medical history recorded.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Scan History</h3>
+    {% if scans %}
+    <table>
+      <thead>
+        <tr><th>Scan #</th><th>Prediction</th><th>Confidence</th><th>Region</th><th>Severity</th><th>Date</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for s in scans %}
+        {% set sp = s.prediction|lower %}
+        {% set sbadge = 'badge-hemorrhagic' if sp == 'hemorrhagic' else ('badge-ischemic' if sp == 'ischemic' else ('badge-normal' if sp == 'normal' else 'badge-unknown')) %}
+        {% set slabel = {'hemorrhagic': 'Hemorrhagic Stroke', 'ischemic': 'Ischemic Stroke', 'normal': 'Normal', 'unknown': 'Unknown'}[sp] %}
+        <tr>
+          <td>{{ s.id }}</td>
+          <td><span class="badge {{ sbadge }}">{{ slabel }}</span></td>
+          <td>{{ s.confidence }}%</td>
+          <td>{{ s.affected_region or '-' }}</td>
+          <td>{{ s.severity or '-' }}</td>
+          <td>{{ s.created_at[:10] }}</td>
+          <td><a class="btn btn-sm btn-primary" href="{{ url_for('doctor_report', scan_id=s.id) }}">View</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="muted">No scans uploaded for this patient yet.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Patients | Brain Stroke AI{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Patient Management</h1>
+    <p>Register, search, edit, or remove patients.</p>
+  </div>
+  <a class="btn btn-primary" href="{{ url_for('patient_new') }}">+ Add Patient</a>
+</div>
+
+<form class="search-bar" method="GET" action="{{ url_for('doctor_patients') }}">
+  <input type="text" name="q" value="{{ query }}" placeholder="Search by name, phone, or patient ID..." />
+  <button class="btn btn-primary" type="submit">Search</button>
+  {% if query %}<a class="btn" href="{{ url_for('doctor_patients') }}">Clear</a>{% endif %}
+</form>
+
+<div class="card">
+  {% if patients %}
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th><th>Name</th><th>Age</th><th>Gender</th><th>Phone</th><th>Blood Group</th><th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in patients %}
+      <tr>
+        <td>{{ p.id }}</td>
+        <td>{{ p.name }}</td>
+        <td>{{ p.age or '-' }}</td>
+        <td>{{ p.gender or '-' }}</td>
+        <td>{{ p.phone or '-' }}</td>
+        <td>{{ p.blood_group or '-' }}</td>
+        <td>
+          <a class="btn btn-sm btn-primary" href="{{ url_for('patient_detail', patient_id=p.id) }}">View</a>
+          <a class="btn btn-sm btn-primary" href="{{ url_for('patient_upload', patient_id=p.id) }}">Upload Scan</a>
+          <a class="btn btn-sm" href="{{ url_for('patient_edit', patient_id=p.id) }}">Edit</a>
+          <form method="POST" action="{{ url_for('patient_delete', patient_id=p.id) }}" style="display: inline;" onsubmit="return confirm('Delete this patient and all their scans?');">
+            <button class="btn btn-sm btn-danger" type="submit">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No patients found. {% if query %}Try a different search.{% else %}Register your first patient.{% endif %}</p>
+  {% endif %}
+</div>
+{% endblock %}

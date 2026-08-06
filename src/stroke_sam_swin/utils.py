@@ -28,6 +28,11 @@ def save_json(payload: dict[str, Any], path: str | Path) -> None:
         json.dump(payload, file, indent=2)
 
 
+def load_json(path: str | Path) -> dict[str, Any]:
+    with Path(path).open("r", encoding="utf-8") as file:
+        return json.load(file)
+
+
 def set_seed(seed: int) -> None:
     random.seed(seed)
     np.random.seed(seed)

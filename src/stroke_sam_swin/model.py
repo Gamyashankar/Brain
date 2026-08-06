@@ -15,13 +15,23 @@ def build_model(config: dict, num_classes: int, pretrained: bool | None = None) 
     )
 
 
-def save_checkpoint(path: str, model: nn.Module, classes: list[str], config: dict, metrics: dict) -> None:
+def save_checkpoint(
+    path: str,
+    model: nn.Module,
+    classes: list[str],
+    config: dict,
+    metrics: dict,
+    optimizer_state: dict | None = None,
+    scheduler_state: dict | None = None,
+) -> None:
     torch.save(
         {
             "model_state": model.state_dict(),
             "classes": classes,
             "config": config,
             "metrics": metrics,
+            "optimizer_state": optimizer_state,
+            "scheduler_state": scheduler_state,
         },
         path,
     )

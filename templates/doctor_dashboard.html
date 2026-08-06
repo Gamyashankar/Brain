@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Doctor Dashboard | Brain Stroke AI{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Doctor Dashboard</h1>
+    <p>Overview of patients, scans, and stroke cases.</p>
+  </div>
+  <a class="btn btn-brand" href="{{ url_for('patient_new') }}">+ Add Patient</a>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card teal"><div class="stat-value">{{ stats.total_patients }}</div><div class="stat-label">Total Patients</div></div>
+  <div class="stat-card cyan"><div class="stat-value">{{ stats.total_scans }}</div><div class="stat-label">Total MRI Scans</div></div>
+  <div class="stat-card red"><div class="stat-value">{{ stats.stroke_cases }}</div><div class="stat-label">Stroke Cases</div></div>
+  <div class="stat-card green"><div class="stat-value">{{ stats.normal }}</div><div class="stat-label">Normal Cases</div></div>
+</div>
+
+<div class="card" style="margin-bottom: 24px;">
+  <h3>Recent Patients</h3>
+  {% if recent_patients %}
+  <table>
+    <thead>
+      <tr><th>ID</th><th>Name</th><th>Age</th><th>Gender</th><th>Phone</th></tr>
+    </thead>
+    <tbody>
+      {% for p in recent_patients %}
+      <tr>
+        <td>{{ p.id }}</td>
+        <td><a href="{{ url_for('patient_detail', patient_id=p.id) }}">{{ p.name }}</a></td>
+        <td>{{ p.age or '-' }}</td>
+        <td>{{ p.gender or '-' }}</td>
+        <td>{{ p.phone or '-' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No patients registered yet.</p>
+  {% endif %}
+</div>
+
+<div style="display: flex; gap: 12px; flex-wrap: wrap;">
+  <a class="btn btn-primary" href="{{ url_for('doctor_patients') }}">View All Patients</a>
+  <a class="btn" href="{{ url_for('doctor_statistics') }}">Hospital Statistics</a>
+</div>
+{% endblock %}

@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Patient Dashboard | Brain Stroke AI{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Welcome, {{ patient.name }}</h1>
+    <p>Patient ID: {{ patient.id }} &bull; {{ patient.gender or 'Gender not set' }}, {{ patient.age or 'Age not set' }}</p>
+  </div>
+</div>
+
+<div class="two-col" style="margin-bottom: 24px;">
+  <div class="card">
+    <h3>My Profile</h3>
+    <table>
+      <tr><th>Name</th><td>{{ patient.name }}</td></tr>
+      <tr><th>Patient ID</th><td>{{ patient.id }}</td></tr>
+      <tr><th>Age</th><td>{{ patient.age or '-' }}</td></tr>
+      <tr><th>Gender</th><td>{{ patient.gender or '-' }}</td></tr>
+      <tr><th>Phone</th><td>{{ patient.phone or '-' }}</td></tr>
+      <tr><th>Blood Group</th><td>{{ patient.blood_group or '-' }}</td></tr>
+      <tr><th>Medical History</th><td>{{ patient.medical_history or '-' }}</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3>My Reports</h3>
+    {% if scans %}
+    <table>
+      <thead>
+        <tr><th>Date</th><th>Prediction</th><th>Confidence</th><th>Action</th></tr>
+      </thead>
+      <tbody>
+        {% for s in scans %}
+        {% set pred = s.prediction|lower %}
+        {% set badge_class = 'badge-hemorrhagic' if pred == 'hemorrhagic' else ('badge-ischemic' if pred == 'ischemic' else ('badge-normal' if pred == 'normal' else 'badge-unknown')) %}
+        <tr>
+          <td>{{ s.created_at[:10] }}</td>
+          <td><span class="badge {{ badge_class }}">{{ pred }}</span></td>
+          <td>{{ s.confidence }}%</td>
+          <td>
+            <a class="btn btn-sm btn-primary" href="{{ url_for('patient_report', scan_id=s.id) }}">View</a>
+            <a class="btn btn-sm" href="{{ url_for('download_scan_report', scan_id=s.id) }}">Download PDF</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p>No reports available yet. Please contact your doctor.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

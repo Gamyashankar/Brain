@@ -3,14 +3,16 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+import numpy as np
 import torch
 from sklearn.metrics import accuracy_score, f1_score
 from torch import nn
+from torch.optim.lr_scheduler import CosineAnnealingLR
 from tqdm import tqdm
 
 from .data import build_loaders
 from .model import build_model, save_checkpoint
-from .utils import ensure_dir, get_device, load_config, save_json, set_seed
+from .utils import ensure_dir, get_device, load_config, load_json, save_json, set_seed
 
 
 def run_epoch(
@@ -57,27 +59,59 @@ def run_epoch(
     }
 
 
-def train(config_path: str) -> None:
+def train(config_path: str, resume: bool = False, epochs_target: int | None = None) -> None:
     config = load_config(config_path)
     set_seed(int(config.get("seed", 42)))
     device = get_device()
 
+    total_epochs = int(config["training"]["epochs"])
+    if epochs_target is None:
+        epochs_target = total_epochs
+
     train_loader, val_loader, _, classes = build_loaders(config)
     model = build_model(config, num_classes=len(classes)).to(device)
 
-    criterion = nn.CrossEntropyLoss()
+    targets = np.asarray(train_loader.dataset.targets)
+    counts = np.bincount(targets, minlength=len(classes)).astype(np.float32)
+    class_weights = torch.tensor(counts.sum() / (len(classes) * counts), dtype=torch.float32, device=device)
+    print(f"Class weights: {dict(zip(classes, class_weights.cpu().tolist()))}")
+
+    criterion = nn.CrossEntropyLoss(weight=class_weights)
     optimizer = torch.optim.AdamW(
         model.parameters(),
         lr=float(config["training"]["learning_rate"]),
         weight_decay=float(config["training"]["weight_decay"]),
     )
+    scheduler = CosineAnnealingLR(optimizer, T_max=total_epochs)
 
     checkpoint_dir = ensure_dir(config["outputs"]["checkpoints"])
     report_dir = ensure_dir(config["outputs"]["reports"])
+    checkpoint_path = Path(checkpoint_dir) / "best_model.pt"
+    start_epoch = 1
     best_f1 = -1.0
-    history: list[dict[str, float | int]] = []
 
-    for epoch in range(1, int(config["training"]["epochs"]) + 1):
+    if resume and checkpoint_path.exists():
+        checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
+        if list(checkpoint.get("classes", [])) != classes:
+            raise RuntimeError(
+                f"Cannot resume: checkpoint trained on {checkpoint.get('classes')} "
+                f"but the dataset now has {classes}. Retrain from scratch first "
+                "(run without --resume)."
+            )
+        model.load_state_dict(checkpoint["model_state"])
+        if checkpoint.get("optimizer_state") is not None:
+            optimizer.load_state_dict(checkpoint["optimizer_state"])
+        if checkpoint.get("scheduler_state") is not None:
+            scheduler.load_state_dict(checkpoint["scheduler_state"])
+        best_f1 = float(checkpoint["metrics"].get("best_f1", -1.0))
+        start_epoch = int(checkpoint["metrics"].get("best_epoch", 0)) + 1
+        print(f"Resuming from epoch {start_epoch} (target {epochs_target}), best val F1 = {best_f1:.4f}")
+
+    history: list[dict[str, float | int]] = []
+    if resume and (Path(report_dir) / "training_history.json").exists():
+        history = load_json(Path(report_dir) / "training_history.json").get("history", [])
+
+    for epoch in range(start_epoch, epochs_target + 1):
         print(f"Epoch {epoch}")
         train_metrics = run_epoch(
             model,
@@ -88,6 +122,7 @@ def train(config_path: str) -> None:
             mixed_precision=bool(config["training"].get("mixed_precision", True)),
         )
         val_metrics = run_epoch(model, val_loader, criterion, device)
+        scheduler.step()
 
         row = {
             "epoch": epoch,
@@ -104,8 +139,20 @@ def train(config_path: str) -> None:
                 model,
                 classes,
                 config,
-                {"best_epoch": epoch, **val_metrics},
+                {"best_epoch": epoch, "best_f1": best_f1, **val_metrics},
+                optimizer_state=optimizer.state_dict(),
+                scheduler_state=scheduler.state_dict(),
             )
+
+        save_checkpoint(
+            str(Path(checkpoint_dir) / "latest_model.pt"),
+            model,
+            classes,
+            config,
+            {"best_epoch": epoch, "best_f1": best_f1, **val_metrics},
+            optimizer_state=optimizer.state_dict(),
+            scheduler_state=scheduler.state_dict(),
+        )
 
     save_json({"classes": classes, "history": history}, Path(report_dir) / "training_history.json")
 
@@ -113,9 +160,11 @@ def train(config_path: str) -> None:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default="configs/default.yaml")
+    parser.add_argument("--epochs", type=int, default=None, help="Run training up to this cumulative epoch (default: config epochs)")
+    parser.add_argument("--resume", action="store_true", help="Resume from the existing best_model.pt checkpoint")
     return parser.parse_args()
 
 
 if __name__ == "__main__":
     args = parse_args()
-    train(args.config)
+    train(args.config, resume=args.resume, epochs_target=args.epochs)

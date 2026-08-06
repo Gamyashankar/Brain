@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Upload Scan | Brain Stroke AI{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Upload MRI / CT Scan</h1>
+    <p>Patient: <strong>{{ patient.name }}</strong> (ID: {{ patient.id }})</p>
+  </div>
+  <a class="btn" href="{{ url_for('doctor_patients') }}">&larr; Back to patients</a>
+</div>
+
+<div class="two-col">
+  <div class="card">
+    <h3>Patient Details</h3>
+    <table>
+      <tr><th>Name</th><td>{{ patient.name }}</td></tr>
+      <tr><th>Age</th><td>{{ patient.age or '-' }}</td></tr>
+      <tr><th>Gender</th><td>{{ patient.gender or '-' }}</td></tr>
+      <tr><th>Phone</th><td>{{ patient.phone or '-' }}</td></tr>
+      <tr><th>Blood Group</th><td>{{ patient.blood_group or '-' }}</td></tr>
+      <tr><th>Medical History</th><td>{{ patient.medical_history or '-' }}</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h3>Analyze Scan</h3>
+    <form method="POST" enctype="multipart/form-data">
+      <div class="field">
+        <label>CT or MRI image (PNG/JPG)</label>
+        <input type="file" name="file" accept="image/*" required />
+      </div>
+      <p class="muted">The pipeline runs: SAM segmentation &rarr; Swin Transformer classification &rarr; Explainable AI heatmap &rarr; report generation.</p>
+      <button class="btn btn-brand btn-pill" type="submit">Run Analysis</button>
+    </form>
+    <div class="analyzing-banner">
+      <div class="brain-ai" style="height: 150px;">
+        <div class="halo" style="width: 150px; height: 150px;"></div>
+        <div class="halo h2" style="width: 114px; height: 114px;"></div>
+        <svg viewBox="0 0 240 200" xmlns="http://www.w3.org/2000/svg" style="max-width: 170px;">
+          <defs>
+            <linearGradient id="bgrad2" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#00c2bf"/><stop offset="1" stop-color="#7c3aed"/>
+            </linearGradient>
+          </defs>
+          <g stroke="#7c3aed" stroke-opacity="0.30" stroke-width="1.8">
+            <line x1="45" y1="62" x2="70" y2="45"/><line x1="70" y1="45" x2="96" y2="40"/>
+            <line x1="96" y1="40" x2="88" y2="68"/><line x1="88" y1="68" x2="75" y2="100"/>
+            <line x1="45" y1="62" x2="52" y2="88"/><line x1="52" y1="88" x2="75" y2="100"/>
+            <line x1="88" y1="68" x2="120" y2="78"/><line x1="75" y1="100" x2="120" y2="110"/>
+            <line x1="195" y1="62" x2="170" y2="45"/><line x1="170" y1="45" x2="144" y2="40"/>
+            <line x1="144" y1="40" x2="152" y2="68"/><line x1="152" y1="68" x2="165" y2="100"/>
+            <line x1="195" y1="62" x2="188" y2="88"/><line x1="188" y1="88" x2="165" y2="100"/>
+            <line x1="152" y1="68" x2="120" y2="78"/><line x1="165" y1="100" x2="120" y2="110"/>
+            <line x1="120" y1="78" x2="120" y2="110"/><line x1="120" y1="110" x2="120" y2="132"/>
+            <line x1="96" y1="40" x2="120" y2="48"/><line x1="144" y1="40" x2="120" y2="48"/>
+          </g>
+          <circle r="4.5" fill="#00c2bf"><animateMotion dur="2.8s" repeatCount="indefinite" path="M70,45 C100,28 140,28 170,45"/></circle>
+          <circle r="4.5" fill="#a78bfa"><animateMotion dur="3.4s" repeatCount="indefinite" path="M120,132 L120,110 C100,110 100,120 88,118"/></circle>
+          <g fill="url(#bgrad2)">
+            <circle cx="70" cy="45" r="16" class="nn-node" style="animation-delay: 0s"/>
+            <circle cx="45" cy="62" r="14" class="nn-node" style="animation-delay: 0.3s"/>
+            <circle cx="52" cy="88" r="15" class="nn-node" style="animation-delay: 0.6s"/>
+            <circle cx="75" cy="100" r="14" class="nn-node" style="animation-delay: 0.9s"/>
+            <circle cx="88" cy="68" r="18" class="nn-node" style="animation-delay: 0.15s"/>
+            <circle cx="96" cy="40" r="13" class="nn-node" style="animation-delay: 0.45s"/>
+            <circle cx="170" cy="45" r="16" class="nn-node" style="animation-delay: 0.12s"/>
+            <circle cx="195" cy="62" r="14" class="nn-node" style="animation-delay: 0.42s"/>
+            <circle cx="188" cy="88" r="15" class="nn-node" style="animation-delay: 0.72s"/>
+            <circle cx="165" cy="100" r="14" class="nn-node" style="animation-delay: 1.02s"/>
+            <circle cx="152" cy="68" r="18" class="nn-node" style="animation-delay: 0.27s"/>
+            <circle cx="144" cy="40" r="13" class="nn-node" style="animation-delay: 0.57s"/>
+            <circle cx="120" cy="78" r="17" class="nn-node" style="animation-delay: 0.2s"/>
+            <circle cx="120" cy="110" r="15" class="nn-node" style="animation-delay: 0.5s"/>
+            <circle cx="120" cy="48" r="15" class="nn-node" style="animation-delay: 0.8s"/>
+            <circle cx="120" cy="132" r="11" class="nn-node" style="animation-delay: 0.35s"/>
+          </g>
+        </svg>
+      </div>
+      <p style="font-weight: 800; color: var(--navy); margin: 6px 0 0;">Analyzing scan…</p>
+      <p class="muted" style="margin: 4px 0 0; font-size: 12.5px;">SAM &rarr; Swin Transformer &rarr; LIME &middot; Grad-CAM &middot; SHAP</p>
+      <div class="analyzing-dots"><span></span><span></span><span></span></div>
+    </div>
+  </div>
+</div>
+{% endblock %}

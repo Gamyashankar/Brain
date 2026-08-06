@@ -5,7 +5,8 @@ It uses:
 
 - **SAM** for ROI/mask-assisted preprocessing.
 - **Swin Transformer** for image classification.
-- **Swin-based explanation heatmaps** for visual decision support.
+- **Swin-based explanation heatmaps** for visual decision support (LIME, Grad-CAM, SHAP).
+- **Lesion localization** with affected region, area, and centroid for clinical summaries.
 
 The default task assumes 3 classes:
 
@@ -34,10 +35,18 @@ brain/
     data.py
     evaluate.py
     explain.py
+    inference.py
+    localization.py
     model.py
+    report.py
     sam_roi.py
     train.py
     utils.py
+  app.py            # FastAPI service (port 8004)
+  flask_app.py      # Flask hospital web app (port 8003)
+  database.py       # SQLite ORM + schema migrations
+  templates/        # Web UI (base/landing/login/dashboard/report/...)
+  tests/
 ```
 
 ## Setup
@@ -122,19 +131,32 @@ outputs/explanations/
 
 ## 5. Run the Web Clinical Tool
 
+Two interfaces are available:
+
 ```powershell
-streamlit run app.py
+# Flask hospital web app (recommended for the demo)
+python flask_app.py        # http://127.0.0.1:8003/  (login: admin / admin123)
+
+# FastAPI service
+python app.py              # http://127.0.0.1:8004/docs
 ```
 
 The web app supports:
 
-- CT/MRI image upload.
-- Prediction and confidence display after training.
-- Class probability table.
-- Swin explanation heatmap display after training.
-- Downloadable PDF clinical-style report.
+- Doctor / patient role-based access and patient management.
+- CT/MRI image upload and prediction with confidence and severity.
+- Stroke score, class probability table, and affected brain region.
+- XAI heatmaps (LIME, Grad-CAM, SHAP) plus a consensus mask.
+- Lesion localization: red contour overlay, lesion area (mm²), % of brain affected, centroid.
+- Downloadable NeuroScan-branded PDF clinical report.
 
 If `outputs/checkpoints/best_model.pt` is not available yet, the app opens in training-required mode.
+
+## 6. Tests
+
+```powershell
+python -m pytest -q
+```
 
 ## Notes for a Strong Final-Year or Research Project
 
@@ -143,3 +165,4 @@ If `outputs/checkpoints/best_model.pt` is not available yet, the app opens in tr
 - Validate separately for CT and MRI if your dataset contains both.
 - Include radiologist review of SAM masks and Swin explanation heatmaps if possible.
 - Do not claim clinical readiness unless validated on external hospital data.
+- The lobe/region atlas is a heuristic approximation (not MNI/Harvard-Oxford registered); area assumes ~0.5 mm/pixel.

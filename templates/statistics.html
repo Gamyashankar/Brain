@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Hospital Statistics | Brain Stroke AI{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Hospital Statistics</h1>
+    <p>Stroke case distribution and scan activity.</p>
+  </div>
+  <a class="btn" href="{{ url_for('doctor_dashboard') }}">&larr; Dashboard</a>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card teal"><div class="stat-value">{{ stats.total_patients }}</div><div class="stat-label">Total Patients</div></div>
+  <div class="stat-card cyan"><div class="stat-value">{{ stats.total_scans }}</div><div class="stat-label">Total Scans</div></div>
+  <div class="stat-card green"><div class="stat-value">{{ stats.normal }}</div><div class="stat-label">Normal Cases</div></div>
+  <div class="stat-card amber"><div class="stat-value">{{ stats.ischemic }}</div><div class="stat-label">Ischemic Stroke</div></div>
+  <div class="stat-card red"><div class="stat-value">{{ stats.hemorrhagic }}</div><div class="stat-label">Hemorrhagic Stroke</div></div>
+  <div class="stat-card pink"><div class="stat-value">{{ stats.todays_scans }}</div><div class="stat-label">Today's Scans</div></div>
+</div>
+
+<div class="two-col" style="margin-bottom: 24px;">
+  <div class="card">
+    <h3>Stroke Type Distribution</h3>
+    <canvas id="pieChart" height="220"></canvas>
+  </div>
+  <div class="card">
+    <h3>Scans per Month</h3>
+    <canvas id="barChart" height="220"></canvas>
+  </div>
+</div>
+
+<div class="card">
+  <h3>Recent Reports</h3>
+  {% if recent_scans %}
+  <table>
+    <thead>
+      <tr><th>Report</th><th>Patient ID</th><th>Prediction</th><th>Confidence</th><th>Date</th></tr>
+    </thead>
+    <tbody>
+      {% for s in recent_scans %}
+      {% set pred = s.prediction|lower %}
+      {% set badge_class = 'badge-hemorrhagic' if pred == 'hemorrhagic' else ('badge-ischemic' if pred == 'ischemic' else ('badge-normal' if pred == 'normal' else 'badge-unknown')) %}
+      <tr>
+        <td><a href="{{ url_for('doctor_report', scan_id=s.id) }}">Report #{{ s.id }}</a></td>
+        <td>{{ s.patient_id }}</td>
+        <td><span class="badge {{ badge_class }}">{{ pred }}</span></td>
+        <td>{{ s.confidence }}%</td>
+        <td>{{ s.created_at[:16] }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No reports generated yet.</p>
+  {% endif %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+  new Chart(document.getElementById('pieChart'), {
+    type: 'pie',
+    data: {
+      labels: ['Normal', 'Ischemic Stroke', 'Hemorrhagic Stroke'],
+      datasets: [{
+        data: [{{ stats.normal }}, {{ stats.ischemic }}, {{ stats.hemorrhagic }}],
+        backgroundColor: ['#2E7D32', '#1565C0', '#B3453D']
+      }]
+    }
+  });
+  new Chart(document.getElementById('barChart'), {
+    type: 'bar',
+    data: {
+      labels: {{ months | tojson }},
+      datasets: [{
+        label: 'Scans',
+        data: {{ monthly_counts | tojson }},
+        backgroundColor: '#2F7A73'
+      }]
+    },
+    options: { scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+  });
+</script>
+{% endblock %}

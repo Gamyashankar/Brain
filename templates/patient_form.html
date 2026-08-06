@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit Patient' if patient else 'Register Patient' }} | Brain Stroke AI{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ 'Edit Patient' if patient else 'Register New Patient' }}</h1>
+    <p>{{ 'Update the details for this patient.' if patient else 'Create a patient profile and a patient login account.' }}</p>
+  </div>
+</div>
+
+<div class="card" style="max-width: 760px;">
+  <form method="POST">
+    <div class="form-grid">
+      <div class="field">
+        <label>Full Name *</label>
+        <input name="name" value="{{ patient.name if patient else '' }}" required />
+      </div>
+      <div class="field">
+        <label>Age</label>
+        <input name="age" type="number" min="0" max="130" value="{{ patient.age if patient and patient.age is not none else '' }}" />
+      </div>
+      <div class="field">
+        <label>Gender</label>
+        <select name="gender">
+          {% set g = patient.gender if patient else '' %}
+          <option value="" {% if not g %}selected{% endif %}>-- Select --</option>
+          <option value="Male" {% if g == 'Male' %}selected{% endif %}>Male</option>
+          <option value="Female" {% if g == 'Female' %}selected{% endif %}>Female</option>
+          <option value="Other" {% if g == 'Other' %}selected{% endif %}>Other</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Phone Number</label>
+        <input name="phone" value="{{ patient.phone if patient else '' }}" />
+      </div>
+      <div class="field">
+        <label>Blood Group</label>
+        <select name="blood_group">
+          {% set bg = patient.blood_group if patient else '' %}
+          {% for option in ['', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] %}
+          <option value="{{ option }}" {% if bg == option %}selected{% endif %}>{{ option if option else '-- Select --' }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label>Username (login)</label>
+        {% if patient %}
+        <input value="{{ patient.username or '-' }}" disabled />
+        {% else %}
+        <input name="username" required placeholder="e.g. john.doe" />
+        {% endif %}
+      </div>
+      {% if not patient %}
+      <div class="field">
+        <label>Password (login)</label>
+        <input name="password" type="text" required placeholder="Give the patient a login password" />
+      </div>
+      {% endif %}
+    </div>
+    <div class="field">
+      <label>Medical History</label>
+      <textarea name="medical_history" rows="3" placeholder="Hypertension, diabetes, previous strokes, medications...">{{ patient.medical_history if patient else '' }}</textarea>
+    </div>
+    <div style="display: flex; gap: 10px;">
+      <button class="btn btn-primary" type="submit">{{ 'Save Changes' if patient else 'Register Patient' }}</button>
+      <a class="btn" href="{{ url_for('doctor_patients') }}">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
