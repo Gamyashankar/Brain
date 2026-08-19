@@ -125,7 +125,24 @@ def login():
             session["role"] = user["role"]
             return redirect(url_for("dashboard"))
         error = "Invalid username, password, or role."
-    return render_template("login.html", error=error)
+    return render_template("login.html", error=error, login_role="doctor")
+
+
+@app.route("/patient_login", methods=["GET", "POST"])
+def patient_login():
+    if session.get("user_id"):
+        return redirect(url_for("dashboard"))
+    error = None
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "")
+        user = get_user_by_username(username)
+        if user and user["role"] == "patient" and check_password_hash(user["password_hash"], password):
+            session["user_id"] = user["id"]
+            session["role"] = "patient"
+            return redirect(url_for("dashboard"))
+        error = "Invalid username or password."
+    return render_template("login.html", error=error, login_role="patient")
 
 
 @app.route("/logout")
@@ -213,7 +230,32 @@ def save_scan_record(patient_id: int, summary: dict[str, Any], inference_result:
 def doctor_dashboard():
     stats = scan_counts()
     recent_patients = get_patients()[:8]
-    return render_template("doctor_dashboard.html", stats=stats, recent_patients=recent_patients)
+    all_patients = get_patients()
+    gender_counts = {"male": 0, "female": 0, "other": 0}
+    age_buckets = {"0-18": 0, "19-35": 0, "36-50": 0, "51-65": 0, "65+": 0}
+    for p in all_patients:
+        g = (p.get("gender") or "").lower()
+        if g in gender_counts:
+            gender_counts[g] += 1
+        age = p.get("age")
+        if age is not None:
+            if age <= 18:
+                age_buckets["0-18"] += 1
+            elif age <= 35:
+                age_buckets["19-35"] += 1
+            elif age <= 50:
+                age_buckets["36-50"] += 1
+            elif age <= 65:
+                age_buckets["51-65"] += 1
+            else:
+                age_buckets["65+"] += 1
+    return render_template(
+        "doctor_dashboard.html",
+        stats=stats,
+        recent_patients=recent_patients,
+        gender_counts=gender_counts,
+        age_buckets=age_buckets,
+    )
 
 
 @app.route("/doctor/patients")
@@ -234,6 +276,8 @@ def patient_new():
         phone = request.form.get("phone", "").strip()
         blood_group = request.form.get("blood_group", "").strip()
         medical_history = request.form.get("medical_history", "").strip()
+        emergency_contact = request.form.get("emergency_contact", "").strip()
+        emergency_phone = request.form.get("emergency_phone", "").strip()
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "").strip()
 
@@ -253,6 +297,8 @@ def patient_new():
             medical_history=medical_history,
             username=username,
             password=password,
+            emergency_contact=emergency_contact,
+            emergency_phone=emergency_phone,
         )
         flash(f"Patient registered successfully (ID: {patient_id}).")
         return redirect(url_for("doctor_patients"))
@@ -284,6 +330,8 @@ def patient_edit(patient_id: int):
         phone = request.form.get("phone", "").strip()
         blood_group = request.form.get("blood_group", "").strip()
         medical_history = request.form.get("medical_history", "").strip()
+        emergency_contact = request.form.get("emergency_contact", "").strip()
+        emergency_phone = request.form.get("emergency_phone", "").strip()
         if not name:
             flash("Name is required.")
             return render_template("patient_form.html", patient=patient)
@@ -295,6 +343,8 @@ def patient_edit(patient_id: int):
             phone=phone,
             blood_group=blood_group,
             medical_history=medical_history,
+            emergency_contact=emergency_contact,
+            emergency_phone=emergency_phone,
         )
         flash("Patient updated.")
         return redirect(url_for("doctor_patients"))

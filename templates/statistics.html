@@ -1,21 +1,21 @@
 {% extends "base.html" %}
-{% block title %}Hospital Statistics | Brain Stroke AI{% endblock %}
+{% block title %}Hospital Statistics | NEURA{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
     <h1>Hospital Statistics</h1>
-    <p>Stroke case distribution and scan activity.</p>
+    <p>Stroke case distribution and scan activity across the practice.</p>
   </div>
   <a class="btn" href="{{ url_for('doctor_dashboard') }}">&larr; Dashboard</a>
 </div>
 
 <div class="stats-grid">
-  <div class="stat-card teal"><div class="stat-value">{{ stats.total_patients }}</div><div class="stat-label">Total Patients</div></div>
-  <div class="stat-card cyan"><div class="stat-value">{{ stats.total_scans }}</div><div class="stat-label">Total Scans</div></div>
-  <div class="stat-card green"><div class="stat-value">{{ stats.normal }}</div><div class="stat-label">Normal Cases</div></div>
-  <div class="stat-card amber"><div class="stat-value">{{ stats.ischemic }}</div><div class="stat-label">Ischemic Stroke</div></div>
-  <div class="stat-card red"><div class="stat-value">{{ stats.hemorrhagic }}</div><div class="stat-label">Hemorrhagic Stroke</div></div>
-  <div class="stat-card pink"><div class="stat-value">{{ stats.todays_scans }}</div><div class="stat-label">Today's Scans</div></div>
+  <div class="stat-card teal"><div class="stat-value" data-count="{{ stats.total_patients }}">0</div><div class="stat-label">Total Patients</div></div>
+  <div class="stat-card cyan"><div class="stat-value" data-count="{{ stats.total_scans }}">0</div><div class="stat-label">Total Scans</div></div>
+  <div class="stat-card green"><div class="stat-value" data-count="{{ stats.normal }}">0</div><div class="stat-label">Normal Cases</div></div>
+  <div class="stat-card amber"><div class="stat-value" data-count="{{ stats.ischemic }}">0</div><div class="stat-label">Ischemic Stroke</div></div>
+  <div class="stat-card red"><div class="stat-value" data-count="{{ stats.hemorrhagic }}">0</div><div class="stat-label">Hemorrhagic Stroke</div></div>
+  <div class="stat-card pink"><div class="stat-value" data-count="{{ stats.todays_scans }}">0</div><div class="stat-label">Today's Scans</div></div>
 </div>
 
 <div class="two-col" style="margin-bottom: 24px;">
@@ -30,7 +30,10 @@
 </div>
 
 <div class="card">
-  <h3>Recent Reports</h3>
+  <div class="card-head">
+    <h3>Recent Reports</h3>
+    <span class="muted">{{ recent_scans|length }} latest</span>
+  </div>
   {% if recent_scans %}
   <table>
     <thead>
@@ -41,8 +44,8 @@
       {% set pred = s.prediction|lower %}
       {% set badge_class = 'badge-hemorrhagic' if pred == 'hemorrhagic' else ('badge-ischemic' if pred == 'ischemic' else ('badge-normal' if pred == 'normal' else 'badge-unknown')) %}
       <tr>
-        <td><a href="{{ url_for('doctor_report', scan_id=s.id) }}">Report #{{ s.id }}</a></td>
-        <td>{{ s.patient_id }}</td>
+        <td><a class="tbl-link" href="{{ url_for('doctor_report', scan_id=s.id) }}">Report #{{ s.id }}</a></td>
+        <td class="mono">#{{ s.patient_id }}</td>
         <td><span class="badge {{ badge_class }}">{{ pred }}</span></td>
         <td>{{ s.confidence }}%</td>
         <td>{{ s.created_at[:16] }}</td>
@@ -51,22 +54,33 @@
     </tbody>
   </table>
   {% else %}
-  <p>No reports generated yet.</p>
+  <p class="muted" style="margin: 0;">No reports generated yet.</p>
   {% endif %}
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
-  new Chart(document.getElementById('pieChart'), {
-    type: 'pie',
+  const FONT = '"Open Sans", sans-serif';
+  Chart.defaults.font.family = FONT;
+  Chart.defaults.color = '#6b7c8f';
+
+  const pie = new Chart(document.getElementById('pieChart'), {
+    type: 'doughnut',
     data: {
       labels: ['Normal', 'Ischemic Stroke', 'Hemorrhagic Stroke'],
       datasets: [{
         data: [{{ stats.normal }}, {{ stats.ischemic }}, {{ stats.hemorrhagic }}],
-        backgroundColor: ['#2E7D32', '#1565C0', '#B3453D']
+        backgroundColor: ['#22c55e', '#22d3ee', '#ef4444'],
+        hoverOffset: 10
       }]
+    },
+    options: {
+      cutout: '62%',
+      plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 18 } } },
+      animation: { animateRotate: true, duration: 1200 }
     }
   });
+
   new Chart(document.getElementById('barChart'), {
     type: 'bar',
     data: {
@@ -74,10 +88,33 @@
       datasets: [{
         label: 'Scans',
         data: {{ monthly_counts | tojson }},
-        backgroundColor: '#2F7A73'
+        backgroundColor: (ctx) => {
+          const i = ctx.dataIndex;
+          const grad = ctx.chart.ctx.createLinearGradient(0, 0, 0, 220);
+          if (i % 2 === 0) { grad.addColorStop(0, '#00a3a1'); grad.addColorStop(1, '#22d3ee'); }
+          else { grad.addColorStop(0, '#005e8f'); grad.addColorStop(1, '#003d65'); }
+          return grad;
+        },
+        borderRadius: 8,
+        maxBarThickness: 44
       }]
     },
-    options: { scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+    options: {
+      scales: {
+        y: { beginAtZero: true, ticks: { precision: 0, stepSize: 1 }, grid: { color: 'rgba(11,45,82,0.06)' } },
+        x: { grid: { display: false } }
+      },
+      plugins: { legend: { display: false } },
+      animation: { duration: 1000 }
+    }
   });
 </script>
+
+<style>
+  .card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .card-head h3 { margin: 0; font-size: 17px; }
+  .tbl-link { font-weight: 700; color: var(--navy); }
+  .tbl-link:hover { color: var(--teal); }
+  .mono { font-family: ui-monospace, Consolas, monospace; font-weight: 700; color: var(--text-secondary); }
+</style>
 {% endblock %}

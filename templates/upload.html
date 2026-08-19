@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Upload Scan | Brain Stroke AI{% endblock %}
+{% block title %}Upload Scan | NEURA{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
@@ -11,7 +11,10 @@
 
 <div class="two-col">
   <div class="card">
-    <h3>Patient Details</h3>
+    <div class="card-head">
+      <h3>Patient Details</h3>
+      <a href="{{ url_for('patient_detail', patient_id=patient.id) }}">Full record &rarr;</a>
+    </div>
     <table>
       <tr><th>Name</th><td>{{ patient.name }}</td></tr>
       <tr><th>Age</th><td>{{ patient.age or '-' }}</td></tr>
@@ -20,16 +23,31 @@
       <tr><th>Blood Group</th><td>{{ patient.blood_group or '-' }}</td></tr>
       <tr><th>Medical History</th><td>{{ patient.medical_history or '-' }}</td></tr>
     </table>
+    <div class="pipeline">
+      <div class="pipe-step"><span>1</span>Segmentation <small>SAM</small></div>
+      <div class="pipe-arrow">&rarr;</div>
+      <div class="pipe-step"><span>2</span>Classification <small>Swin-T</small></div>
+      <div class="pipe-arrow">&rarr;</div>
+      <div class="pipe-step"><span>3</span>Explanation <small>LIME·CAM·SHAP</small></div>
+      <div class="pipe-arrow">&rarr;</div>
+      <div class="pipe-step"><span>4</span>Report <small>PDF</small></div>
+    </div>
   </div>
+
   <div class="card">
     <h3>Analyze Scan</h3>
-    <form method="POST" enctype="multipart/form-data">
-      <div class="field">
-        <label>CT or MRI image (PNG/JPG)</label>
-        <input type="file" name="file" accept="image/*" required />
-      </div>
-      <p class="muted">The pipeline runs: SAM segmentation &rarr; Swin Transformer classification &rarr; Explainable AI heatmap &rarr; report generation.</p>
-      <button class="btn btn-brand btn-pill" type="submit">Run Analysis</button>
+    <form method="POST" enctype="multipart/form-data" id="scanForm">
+      <label class="dropzone" for="fileInput">
+        <input type="file" name="file" id="fileInput" accept="image/*" required />
+        <div class="dz-graphic">
+          <svg viewBox="0 0 24 24" width="34" height="34"><path fill="currentColor" d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg>
+        </div>
+        <div class="dz-title">Drag &amp; drop a scan here</div>
+        <div class="dz-sub">or click to browse &bull; PNG / JPG / JPEG / BMP / TIFF</div>
+        <div id="fileName" class="dz-file"></div>
+      </label>
+      <div class="drop-hint muted">The pipeline runs: SAM segmentation &rarr; Swin Transformer classification &rarr; Explainable AI heatmap &rarr; report generation.</div>
+      <button class="btn btn-brand btn-pill btn-block" type="submit" id="runBtn">Run Analysis</button>
     </form>
     <div class="analyzing-banner">
       <div class="brain-ai" style="height: 150px;">
@@ -38,10 +56,10 @@
         <svg viewBox="0 0 240 200" xmlns="http://www.w3.org/2000/svg" style="max-width: 170px;">
           <defs>
             <linearGradient id="bgrad2" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0" stop-color="#00c2bf"/><stop offset="1" stop-color="#7c3aed"/>
+              <stop offset="0" stop-color="#0089a0"/><stop offset="1" stop-color="#005e8f"/>
             </linearGradient>
           </defs>
-          <g stroke="#7c3aed" stroke-opacity="0.30" stroke-width="1.8">
+          <g stroke="#005e8f" stroke-opacity="0.30" stroke-width="1.8">
             <line x1="45" y1="62" x2="70" y2="45"/><line x1="70" y1="45" x2="96" y2="40"/>
             <line x1="96" y1="40" x2="88" y2="68"/><line x1="88" y1="68" x2="75" y2="100"/>
             <line x1="45" y1="62" x2="52" y2="88"/><line x1="52" y1="88" x2="75" y2="100"/>
@@ -53,7 +71,7 @@
             <line x1="120" y1="78" x2="120" y2="110"/><line x1="120" y1="110" x2="120" y2="132"/>
             <line x1="96" y1="40" x2="120" y2="48"/><line x1="144" y1="40" x2="120" y2="48"/>
           </g>
-          <circle r="4.5" fill="#00c2bf"><animateMotion dur="2.8s" repeatCount="indefinite" path="M70,45 C100,28 140,28 170,45"/></circle>
+          <circle r="4.5" fill="#0089a0"><animateMotion dur="2.8s" repeatCount="indefinite" path="M70,45 C100,28 140,28 170,45"/></circle>
           <circle r="4.5" fill="#a78bfa"><animateMotion dur="3.4s" repeatCount="indefinite" path="M120,132 L120,110 C100,110 100,120 88,118"/></circle>
           <g fill="url(#bgrad2)">
             <circle cx="70" cy="45" r="16" class="nn-node" style="animation-delay: 0s"/>
@@ -81,4 +99,60 @@
     </div>
   </div>
 </div>
+
+<style>
+  .card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .card-head h3 { margin: 0; font-size: 17px; }
+  .card-head a { font-size: 13px; font-weight: 700; }
+
+  .pipeline { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); }
+  .pipe-step { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 11.5px; font-weight: 800; color: var(--navy); text-align: center; }
+  .pipe-step span { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--teal), var(--violet)); color: #fff; font-size: 12px; margin-bottom: 2px; }
+  .pipe-step small { font-size: 9.5px; color: var(--text-secondary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+  .pipe-arrow { color: var(--teal); font-size: 15px; font-weight: 800; }
+
+  .dropzone {
+    display: block; border: 2px dashed var(--border); border-radius: var(--radius-card);
+    padding: 34px 20px; text-align: center; cursor: pointer;
+    transition: border-color 0.18s ease, background 0.18s ease, transform 0.18s ease;
+    background: #fcfdff;
+  }
+  .dropzone:hover, .dropzone.drag { border-color: var(--teal); background: rgba(0, 137, 160, 0.05); transform: scale(1.01); }
+  .dropzone input { display: none; }
+  .dz-graphic {
+    width: 62px; height: 62px; margin: 0 auto 14px; border-radius: 18px;
+    background: linear-gradient(135deg, rgba(0,194,191,0.14), rgba(124,58,237,0.14));
+    color: var(--teal); display: flex; align-items: center; justify-content: center;
+    animation: floaty 4s ease-in-out infinite;
+  }
+  .dz-title { font-size: 15px; font-weight: 800; color: var(--navy); margin-bottom: 4px; }
+  .dz-sub { font-size: 12.5px; color: var(--text-secondary); }
+  .dz-file { margin-top: 12px; font-size: 12.5px; font-weight: 700; color: var(--teal-dark); min-height: 16px; }
+  .drop-hint { font-size: 12.5px; margin: 14px 0 18px; }
+  .btn-block { width: 100%; }
+</style>
+
+<script>
+  const fileInput = document.getElementById('fileInput');
+  const fileName = document.getElementById('fileName');
+  const dz = document.querySelector('.dropzone');
+  const form = document.getElementById('scanForm');
+
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files.length) fileName.textContent = 'Selected: ' + fileInput.files[0].name;
+  });
+
+  ['dragenter', 'dragover'].forEach((evt) => dz.addEventListener(evt, (e) => { e.preventDefault(); dz.classList.add('drag'); }));
+  ['dragleave', 'drop'].forEach((evt) => dz.addEventListener(evt, (e) => { e.preventDefault(); dz.classList.remove('drag'); }));
+  dz.addEventListener('drop', (e) => {
+    if (e.dataTransfer.files.length) {
+      fileInput.files = e.dataTransfer.files;
+      fileName.textContent = 'Selected: ' + e.dataTransfer.files[0].name;
+    }
+  });
+
+  form.addEventListener('submit', () => {
+    if (form.checkValidity()) document.querySelector('.analyzing-banner').classList.add('on');
+  });
+</script>
 {% endblock %}

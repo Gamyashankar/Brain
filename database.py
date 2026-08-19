@@ -28,6 +28,8 @@ CREATE TABLE IF NOT EXISTS patients (
     phone TEXT,
     blood_group TEXT,
     medical_history TEXT,
+    emergency_contact TEXT,
+    emergency_phone TEXT,
     created_at TEXT NOT NULL
 );
 
@@ -58,6 +60,8 @@ SCAN_COLUMN_MIGRATIONS = {
     "lesion_pct": "ALTER TABLE scans ADD COLUMN lesion_pct REAL",
     "lesion_centroid": "ALTER TABLE scans ADD COLUMN lesion_centroid TEXT",
     "lesion_overlay": "ALTER TABLE scans ADD COLUMN lesion_overlay TEXT",
+    "emergency_contact": "ALTER TABLE patients ADD COLUMN emergency_contact TEXT",
+    "emergency_phone": "ALTER TABLE patients ADD COLUMN emergency_phone TEXT",
 }
 
 
@@ -71,9 +75,14 @@ def get_connection() -> sqlite3.Connection:
 def init_db() -> None:
     with get_connection() as conn:
         conn.executescript(SCHEMA)
-        existing_columns = {row[1] for row in conn.execute("PRAGMA table_info(scans)").fetchall()}
+        existing_scans = {row[1] for row in conn.execute("PRAGMA table_info(scans)").fetchall()}
+        existing_patients = {row[1] for row in conn.execute("PRAGMA table_info(patients)").fetchall()}
         for column, ddl in SCAN_COLUMN_MIGRATIONS.items():
-            if column not in existing_columns:
+            if column in existing_scans or column in existing_patients:
+                continue
+            if "scans" in ddl and column not in existing_scans:
+                conn.execute(ddl)
+            elif "patients" in ddl and column not in existing_patients:
                 conn.execute(ddl)
         admin = conn.execute("SELECT id FROM users WHERE username = ?", ("admin",)).fetchone()
         if admin is None:
@@ -113,6 +122,8 @@ def create_patient(
     medical_history: str,
     username: str,
     password: str,
+    emergency_contact: str = "",
+    emergency_phone: str = "",
 ) -> int:
     with get_connection() as conn:
         cursor = conn.execute(
@@ -121,8 +132,8 @@ def create_patient(
         )
         user_id = int(cursor.lastrowid)
         patient_cursor = conn.execute(
-            "INSERT INTO patients (user_id, name, age, gender, phone, blood_group, medical_history, created_at) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO patients (user_id, name, age, gender, phone, blood_group, medical_history, emergency_contact, emergency_phone, created_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 user_id,
                 name,
@@ -131,6 +142,8 @@ def create_patient(
                 phone,
                 blood_group,
                 medical_history,
+                emergency_contact,
+                emergency_phone,
                 datetime.now().isoformat(timespec="seconds"),
             ),
         )
@@ -167,12 +180,12 @@ def get_patient_by_user_id(user_id: int) -> dict[str, Any] | None:
         return dict(row) if row else None
 
 
-def update_patient(patient_id: int, name: str, age: int | None, gender: str, phone: str, blood_group: str, medical_history: str) -> None:
+def update_patient(patient_id: int, name: str, age: int | None, gender: str, phone: str, blood_group: str, medical_history: str, emergency_contact: str = "", emergency_phone: str = "") -> None:
     with get_connection() as conn:
         conn.execute(
-            "UPDATE patients SET name = ?, age = ?, gender = ?, phone = ?, blood_group = ?, medical_history = ? "
+            "UPDATE patients SET name = ?, age = ?, gender = ?, phone = ?, blood_group = ?, medical_history = ?, emergency_contact = ?, emergency_phone = ? "
             "WHERE id = ?",
-            (name, age, gender, phone, blood_group, medical_history, patient_id),
+            (name, age, gender, phone, blood_group, medical_history, emergency_contact, emergency_phone, patient_id),
         )
 
 

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ 'Edit Patient' if patient else 'Register Patient' }} | Brain Stroke AI{% endblock %}
+{% block title %}{{ 'Edit Patient' if patient else 'Register Patient' }} | NEURA{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
@@ -60,6 +60,16 @@
     <div class="field">
       <label>Medical History</label>
       <textarea name="medical_history" rows="3" placeholder="Hypertension, diabetes, previous strokes, medications...">{{ patient.medical_history if patient else '' }}</textarea>
+    </div>
+    <div class="form-grid" style="margin-top: 16px;">
+      <div class="field">
+        <label>Emergency Contact Name</label>
+        <input name="emergency_contact" value="{{ patient.emergency_contact if patient and patient.emergency_contact else '' }}" placeholder="Contact person name" />
+      </div>
+      <div class="field">
+        <label>Emergency Contact Phone</label>
+        <input name="emergency_phone" value="{{ patient.emergency_phone if patient and patient.emergency_phone else '' }}" placeholder="Contact phone number" />
+      </div>
     </div>
     <div style="display: flex; gap: 10px;">
       <button class="btn btn-primary" type="submit">{{ 'Save Changes' if patient else 'Register Patient' }}</button>

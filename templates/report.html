@@ -6,14 +6,22 @@
 {% set badge_class = 'badge-hemorrhagic' if prediction == 'hemorrhagic' else ('badge-ischemic' if prediction == 'ischemic' else ('badge-normal' if prediction == 'normal' else 'badge-unknown')) %}
 {% set display_prediction = {'hemorrhagic': 'Hemorrhagic Stroke', 'ischemic': 'Ischemic Stroke', 'normal': 'Normal', 'unknown': 'Unknown'}[prediction] %}
 
-<div class="page-head">
-  <div>
-    <h1>AI Analysis Report</h1>
-    <p>Report #{{ scan.id }} &bull; {{ scan.created_at[:10] }}</p>
-  </div>
-  <div style="display: flex; gap: 10px;">
-    <a class="btn btn-primary" href="{{ url_for('download_scan_report', scan_id=scan.id) }}">Download PDF</a>
-    {% if role == 'doctor' %}<a class="btn" href="{{ url_for('patient_detail', patient_id=patient.id) }}">Back to patient</a>{% else %}<a class="btn" href="{{ url_for('patient_dashboard') }}">Back</a>{% endif %}
+<div class="report-band {{ prediction }}">
+  <div class="rb-grid"></div>
+  <div class="rb-glow"></div>
+  <div class="rb-inner reveal">
+    <div class="rb-left">
+      <span class="rb-eyebrow">AI Analysis Report &bull; Report #{{ scan.id }}</span>
+      <h1>{{ display_prediction }}</h1>
+      <p>{{ scan.created_at[:10] }} &bull; Confidence {{ scan.confidence }}%{% if scan.affected_region %} &bull; {{ scan.affected_region }}{% endif %}</p>
+    </div>
+    <div class="rb-right">
+      <span class="rb-badge">{{ display_prediction }}</span>
+      <div class="rb-actions">
+        <a class="btn btn-light" href="{{ url_for('download_scan_report', scan_id=scan.id) }}">Download PDF</a>
+        {% if role == 'doctor' %}<a class="btn btn-ghost2" href="{{ url_for('patient_detail', patient_id=patient.id) }}">Back to patient</a>{% else %}<a class="btn btn-ghost2" href="{{ url_for('patient_dashboard') }}">Back</a>{% endif %}
+      </div>
+    </div>
   </div>
 </div>
 
@@ -108,4 +116,34 @@
     {% endif %}
   </div>
 </div>
+
+<style>
+  .report-band {
+    position: relative; overflow: hidden;
+    background: linear-gradient(140deg, var(--navy) 0%, #0b4f7e 55%, #003d65 100%);
+    border-radius: var(--radius-hero);
+    padding: 34px clamp(22px, 4vw, 40px);
+    margin-bottom: 26px;
+    box-shadow: 0 16px 40px rgba(11, 45, 82, 0.24);
+  }
+  .report-band.normal { background: linear-gradient(140deg, #0e3b2e 0%, #0f5132 60%, #14532d 100%); }
+  .report-band.ischemic { background: linear-gradient(140deg, var(--navy) 0%, #0b4f7e 55%, #003d65 100%); }
+  .report-band.hemorrhagic { background: linear-gradient(140deg, #3d1111 0%, #6e1313 55%, #7f1d1d 100%); }
+  .rb-grid { position: absolute; inset: 0; background-image: radial-gradient(rgba(255,255,255,0.08) 1px, transparent 1px); background-size: 26px 26px; pointer-events: none; }
+  .rb-glow { position: absolute; width: 340px; height: 340px; border-radius: 50%; filter: blur(80px); right: -90px; top: -120px; background: rgba(0, 137, 160, 0.25); pointer-events: none; }
+  .rb-inner { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+  .rb-left h1 { color: #fff; font-size: 30px; margin: 6px 0 4px; }
+  .rb-left p { color: rgba(255,255,255,0.75); font-size: 13.5px; margin: 0; }
+  .rb-eyebrow { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: var(--teal-bright); }
+  .rb-right { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .rb-badge {
+    font-size: 13px; font-weight: 800; color: #fff; padding: 8px 18px; border-radius: 999px;
+    background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.3); backdrop-filter: blur(4px);
+  }
+  .rb-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  .btn-light { background: #fff; color: var(--navy); border-color: transparent; }
+  .btn-light:hover { background: #eef2f6; color: var(--navy); }
+  .btn-ghost2 { background: rgba(255,255,255,0.08); color: #fff; border-color: rgba(255,255,255,0.35); backdrop-filter: blur(4px); }
+  .btn-ghost2:hover { background: rgba(255,255,255,0.16); color: #fff; }
+</style>
 {% endblock %}
